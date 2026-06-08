@@ -309,14 +309,14 @@ function App() {
                   )}
                 </div>
 
-                {/* CONTROL BUTTONS */}
-                <div style={{ display: 'flex', gap: '15px', marginTop: '25px' }}>
+                {/* CONTROL BUTTONS - NOW FIXED AND WRAP-STACKABLE ON MOBILE */}
+                <div style={{ display: 'flex', gap: '15px', marginTop: '25px', flexWrap: 'wrap' }}>
                   <button 
                     onClick={() => setRevealCode(!revealCode)}
                     className="search-input"
                     style={{ 
-                      flex: 1, marginBottom: 0, cursor: 'pointer', background: 'transparent',
-                      border: '1px solid #fff', color: '#fff', fontWeight: 'bold' 
+                      flex: '1 1 200px', marginBottom: 0, cursor: 'pointer', background: 'transparent',
+                      border: '1px solid #fff', color: '#fff', fontWeight: 'bold', padding: '12px'
                     }}
                   >
                     {revealCode ? '🙈 MASK_CODE' : '🔓 REVEAL_TARGET_CODE'}
@@ -325,8 +325,8 @@ function App() {
                     onClick={() => handlePickRandomCard()}
                     className="search-input"
                     style={{ 
-                      flex: 1, marginBottom: 0, cursor: 'pointer', background: 'transparent',
-                      border: '1px solid var(--neon-green-bright)', color: 'var(--neon-green-bright)', fontWeight: 'bold' 
+                      flex: '1 1 200px', marginBottom: 0, cursor: 'pointer', background: 'transparent',
+                      border: '1px solid var(--neon-green-bright)', color: 'var(--neon-green-bright)', fontWeight: 'bold', padding: '12px'
                     }}
                   >
                     🎲 NEXT_SYSTEM_TEST
