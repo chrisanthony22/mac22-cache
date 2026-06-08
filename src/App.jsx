@@ -66,9 +66,9 @@ function App() {
     }
   };
 
-  // 3. WIPE OUT DATA ELEMENT (PURGE)
+  // 3. WIPE OUT DATA ELEMENT (DELETE)
   const handleDeleteSnippet = async (id) => {
-    if (window.confirm("SYS_WARN // Execute purge sequence on this data block?")) {
+    if (window.confirm("SYS_WARN // Execute delete sequence on this data block?")) {
       try {
         await deleteDoc(doc(db, "snippets", id));
         // If we were editing the card we just deleted, reset the form
@@ -80,7 +80,7 @@ function App() {
           setShowForm(false);
         }
       } catch (error) {
-        console.error("Purge system exception: ", error);
+        console.error("Delete system exception: ", error);
       }
     }
   };
@@ -174,7 +174,15 @@ function App() {
             </div>
 
             <textarea placeholder="Paste text script or code fragment here..." value={code} onChange={e => setCode(e.target.value)} className="search-input" style={{ marginBottom: 0, height: '70px', resize: 'vertical' }} />
-            <input type="text" placeholder="// Optional explanation logs or reminders..." value={notes} onChange={e => setNotes(e.target.value)} className="search-input" style={{ marginBottom: 0 }} />
+            
+            {/* MULTI-LINE EXPLANATION LOG AREA */}
+            <textarea 
+              placeholder="// Optional explanation logs, reminders, or bullet points... (Press Enter for new lines)" 
+              value={notes} 
+              onChange={e => setNotes(e.target.value)} 
+              className="search-input" 
+              style={{ marginBottom: 0, height: '80px', resize: 'vertical' }} 
+            />
             
             <button type="submit" style={{
               background: 'var(--glitch-blocks)', color: 'var(--neon-green-bright)',
@@ -218,13 +226,14 @@ function App() {
                       fontFamily: 'var(--mono-font)', fontSize: '11px', cursor: 'pointer'
                     }}
                   >
-                    [PURGE]
+                    [DELETE]
                   </button>
                 </div>
               </div>
               <h3>{item.title}</h3>
               <pre><code>{item.code}</code></pre>
-              <p className="card-notes">// {item.notes}</p>
+              
+              <p className="card-notes" style={{ whiteSpace: 'pre-line' }}>// {item.notes}</p>
             </div>
           ))}
           
