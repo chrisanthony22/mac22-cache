@@ -1,0 +1,205 @@
+/* ==========================================================================
+   GLOBAL MATRIX VARIABLES & BACKGROUND SETUP
+   ========================================================================== */
+:root {
+  --bg-black: #000000;
+  --neon-green-bright: #00ff41; 
+  --neon-green-dim: #008f11;    
+  --glitch-blocks: #003300;     
+  --mono-font: 'Courier New', Courier, monospace; 
+}
+
+body {
+  margin: 0;
+  background-color: var(--bg-black);
+  color: var(--neon-green-bright);
+  font-family: var(--mono-font);
+  /* Digital Grid Pattern */
+  background-image: 
+    linear-gradient(rgba(0, 20, 0, 0.05) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0, 20, 0, 0.05) 1px, transparent 1px);
+  background-size: 20px 20px;
+}
+
+/* ==========================================================================
+   LAYOUT STRUCTURE
+   ========================================================================== */
+.app-container {
+  display: flex;
+  min-height: 100vh;
+}
+
+/* SIDEBAR TERMINAL */
+.sidebar {
+  width: 260px;
+  background: #020202;
+  padding: 30px 20px;
+  border-right: 2px dashed var(--neon-green-dim);
+}
+
+.sidebar h2 {
+  font-size: 22px;
+  letter-spacing: 2px;
+  text-shadow: 0 0 8px var(--neon-green-bright);
+  margin-bottom: 30px;
+}
+
+.category-list {
+  list-style: none;
+  padding: 0;
+}
+
+.category-item {
+  cursor: pointer;
+  padding: 12px;
+  margin: 8px 0;
+  border: 1px solid transparent;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.category-item.active, .category-item:hover {
+  background: var(--glitch-blocks);
+  border: 1px solid var(--neon-green-bright);
+  box-shadow: 0 0 8px rgba(0, 255, 65, 0.2);
+}
+
+/* MAIN VIEWPORT */
+.main-content {
+  flex: 1;
+  padding: 40px;
+}
+
+/* ==========================================================================
+   INPUTS & STYLED COMPONENTS
+   ========================================================================== */
+.search-input {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 15px;
+  background: rgba(0, 15, 0, 0.6);
+  border: 1px solid var(--neon-green-dim);
+  color: var(--neon-green-bright);
+  font-family: var(--mono-font);
+  font-size: 16px;
+  outline: none;
+  box-shadow: inset 0 0 5px rgba(0, 255, 65, 0.2);
+  margin-bottom: 30px;
+}
+
+.search-input:focus {
+  border-color: var(--neon-green-bright);
+  box-shadow: 0 0 10px rgba(0, 255, 65, 0.4);
+}
+
+/* RESPONSIVE SNIPPET CARDS GRID */
+.snippet-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 20px;
+}
+
+.snippet-card {
+  background: #040404;
+  border: 1px solid var(--glitch-blocks);
+  padding: 20px;
+  border-radius: 4px;
+  position: relative;
+  transition: all 0.2s ease-in-out;
+}
+
+.snippet-card:hover {
+  border-color: var(--neon-green-bright);
+  box-shadow: 0 0 15px rgba(0, 255, 65, 0.25);
+  transform: translateY(-2px);
+}
+
+.card-category {
+  font-size: 11px;
+  background: var(--glitch-blocks);
+  padding: 2px 8px;
+  border: 1px solid var(--neon-green-dim);
+  border-radius: 2px;
+}
+
+.snippet-card h3 {
+  margin: 15px 0 10px 0;
+  color: #ffffff;
+  font-size: 18px;
+}
+
+.snippet-card pre {
+  background: #0a0a0a;
+  border-left: 3px solid var(--neon-green-bright);
+  padding: 12px;
+  overflow-x: auto;
+  margin: 12px 0;
+}
+
+.snippet-card code {
+  color: var(--neon-green-bright);
+}
+
+.card-notes {
+  color: #888888;
+  font-size: 13px;
+  margin-top: 10px;
+  line-height: 1.4;
+}
+
+.error-message {
+  grid-column: 1 / -1;
+  border: 1px dashed red;
+  padding: 15px;
+  background: rgba(40, 0, 0, 0.2);
+  color: #ff5555;
+}
+
+/* ==========================================================================
+   MEDIA QUERIES (MOBILE RESPONSIVENESS)
+   ========================================================================== */
+@media (max-width: 768px) {
+  .app-container {
+    flex-direction: column;
+  }
+
+  .sidebar {
+    width: 100%;
+    box-sizing: border-box;
+    border-right: none;
+    border-bottom: 2px dashed var(--neon-green-dim);
+    padding: 20px;
+  }
+
+  .sidebar h2 {
+    margin-bottom: 15px;
+    text-align: center;
+  }
+
+  .category-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    justify-content: center;
+  }
+
+  .category-item {
+    margin: 0;
+    padding: 8px 12px;
+    font-size: 12px;
+  }
+
+  .main-content {
+    padding: 20px;
+  }
+
+  .search-input {
+    padding: 12px;
+    font-size: 14px;
+    margin-bottom: 25px;
+  }
+
+  .snippet-grid {
+    grid-template-columns: 1fr; /* Forces cards into 1 column layout */
+    gap: 15px;
+  }
+}
