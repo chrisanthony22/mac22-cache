@@ -122,14 +122,13 @@ function App() {
 
   // 5. LOAD CARD DATA INTO FORM FOR EDITING
   const handleEditClick = (item) => {
-    setExerciseMode(false); 
     setEditingId(item.id);
     setTitle(item.title);
     setCode(item.code);
     setCategory(item.category);
     setNotes(item.notes === 'No extra descriptive context logged.' ? '' : item.notes);
+    setExerciseMode(false); // Make sure regular edit screen handles form overlay
     setShowForm(true);
-    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   // 6. CANCEL EDITING MODE
@@ -150,7 +149,7 @@ function App() {
   return (
     <div className="app-container">
       
-      {/* INJECT DYNAMIC MEDIA CSS STYLES DIRECTLY */}
+      {/* INJECT DYNAMIC POP-UP AND OVERLAY STYLES DIRECTLY */}
       <style>{`
         /* Desktop Base Rules */
         .sidebar {
@@ -164,6 +163,36 @@ function App() {
         }
         .nav-content {
           display: block;
+        }
+
+        /* COOL POP-UP OVERLAY BACKDROP LAYER */
+        .modal-overlay {
+          position: fixed;
+          top: 0;
+          left: 0;
+          width: 100vw;
+          height: 100vh;
+          background: rgba(0, 0, 0, 0.85); /* Cool semi-transparent matrix black */
+          backdrop-filter: blur(6px); /* Frosted glass effect */
+          -webkit-backdrop-filter: blur(6px);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          z-index: 5000; /* Forces panel above everything else */
+          padding: 20px;
+          box-sizing: border-box;
+        }
+
+        /* POP-UP PANEL BOX */
+        .modal-content-box {
+          width: 100%;
+          max-width: 600px;
+          background: #040404;
+          border: 1px solid var(--neon-green-bright);
+          box-shadow: 0 0 25px rgba(0, 255, 65, 0.25);
+          padding: 25px;
+          position: relative;
+          box-sizing: border-box;
         }
 
         /* Mobile Viewport Rules */
@@ -216,16 +245,14 @@ function App() {
       <aside className="sidebar">
         <div className="sidebar-header">
           <h2>📁 mac22_cache</h2>
-          {/* Cyberpunk Burger Toggle Switch */}
           <button className="burger-toggle" onClick={() => setMenuOpen(!menuOpen)}>
             {menuOpen ? '[ CLOSE_NAV ]' : '[ MENU ]'}
           </button>
         </div>
         
-        {/* Responsive Content Drawer Container */}
         <div className="nav-content">
           
-          {/* 1. EXERCISE FLASHCARD MODE TOGGLE (DISPLAYED FIRST) */}
+          {/* 1. EXERCISE FLASHCARD MODE TOGGLE */}
           <button 
             onClick={() => { setExerciseMode(!exerciseMode); setShowForm(false); setMenuOpen(false); }} 
             style={{
@@ -241,7 +268,7 @@ function App() {
 
           {/* 2. INJECT DATA CONTROL ACTION */}
           <button 
-            onClick={editingId ? handleCancelEdit : () => { setShowForm(!showForm); setExerciseMode(false); setMenuOpen(false); }} 
+            onClick={editingId ? handleCancelEdit : () => { setShowForm(!showForm); setMenuOpen(false); }} 
             style={{
               width: '100%', padding: '10px', background: 'transparent',
               border: '1px solid var(--neon-green-bright)', color: 'var(--neon-green-bright)',
@@ -271,83 +298,26 @@ function App() {
       {/* CORE DISPLAY WINDOW */}
       <main className="main-content" style={{ flex: 1, padding: '20px' }}>
         
-        {/* EXERCISE FLASHCARD TERMINAL MODE DISPLAY */}
-        {exerciseMode ? (
-          <div className="exercise-container" style={{ padding: '10px' }}>
-            <h2 style={{ color: 'var(--neon-green-bright)', marginBottom: '5px' }}>⚡ ACTIVE DIAGNOSTIC EXERCISE</h2>
-            <p style={{ opacity: 0.7, margin: '0 0 20px 0', fontSize: '14px' }}>
-              // Target Directory: <span style={{ color: '#fff' }}>{selectedCategory.toUpperCase()}</span>. Review descriptions and recall the matched script syntax.
-            </p>
+        {/* ========================================================= */}
+        {/* INTERACTIVE FORM POP-UP MODAL (Handles Create & Edits)  */}
+        {/* ========================================================= */}
+        {showForm && (
+          <div className="modal-overlay">
+            <div className="modal-content-box">
+              {/* Top-Right Absolute Close Command */}
+              <button 
+                type="button"
+                onClick={editingId ? handleCancelEdit : () => setShowForm(false)}
+                style={{
+                  position: 'absolute', top: '15px', right: '15px', background: 'transparent',
+                  border: 'none', color: '#ff3333', fontFamily: 'var(--mono-font)', 
+                  cursor: 'pointer', fontSize: '12px'
+                }}
+              >
+                [X_CLOSE]
+              </button>
 
-            {currentFlashcard ? (
-              <div className="snippet-card" style={{ maxWidth: '650px', border: '2px solid var(--neon-green-bright)', padding: '25px', background: '#050505' }}>
-                <span className="card-category" style={{ fontSize: '11px' }}>{currentFlashcard.category}</span>
-                <h3 style={{ margin: '10px 0', fontSize: '22px', color: '#fff' }}>{currentFlashcard.title}</h3>
-                
-                <div style={{ margin: '15px 0', padding: '15px', background: '#0c0c0c', borderLeft: '3px solid #666' }}>
-                  <p className="card-notes" style={{ whiteSpace: 'pre-line', margin: 0, color: '#aaa', fontStyle: 'italic' }}>
-                    // {currentFlashcard.notes}
-                  </p>
-                </div>
-
-                {/* THE MASKED CODE SEGMENT */}
-                <div style={{ marginTop: '20px' }}>
-                  {revealCode ? (
-                    <div>
-                      <span style={{ fontSize: '11px', color: 'var(--neon-green-bright)' }}>[TARGET_CODE_UNLOCKED]:</span>
-                      <pre style={{ marginTop: '5px', border: '1px dashed var(--neon-green-bright)' }}>
-                        <code>{currentFlashcard.code}</code>
-                      </pre>
-                    </div>
-                  ) : (
-                    <div style={{ 
-                      background: '#111', height: '55px', display: 'flex', alignItems: 'center', 
-                      justifyContent: 'center', border: '1px dashed #333', color: '#555', fontFamily: 'var(--mono-font)' 
-                    }}>
-                      [ CODE_BLOCK_ENCRYPTED ]
-                    </div>
-                  )}
-                </div>
-
-                {/* CONTROL BUTTONS - NOW FIXED AND WRAP-STACKABLE ON MOBILE */}
-                <div style={{ display: 'flex', gap: '15px', marginTop: '25px', flexWrap: 'wrap' }}>
-                  <button 
-                    onClick={() => setRevealCode(!revealCode)}
-                    className="search-input"
-                    style={{ 
-                      flex: '1 1 200px', marginBottom: 0, cursor: 'pointer', background: 'transparent',
-                      border: '1px solid #fff', color: '#fff', fontWeight: 'bold', padding: '12px'
-                    }}
-                  >
-                    {revealCode ? '🙈 MASK_CODE' : '🔓 REVEAL_TARGET_CODE'}
-                  </button>
-                  <button 
-                    onClick={() => handlePickRandomCard()}
-                    className="search-input"
-                    style={{ 
-                      flex: '1 1 200px', marginBottom: 0, cursor: 'pointer', background: 'transparent',
-                      border: '1px solid var(--neon-green-bright)', color: 'var(--neon-green-bright)', fontWeight: 'bold', padding: '12px'
-                    }}
-                  >
-                    🎲 NEXT_SYSTEM_TEST
-                  </button>
-                </div>
-              </div>
-            ) : (
-              <div className="error-message">
-                <p>⚠️ INDEX_VOID: There are no saved elements loaded inside the "{selectedCategory}" partition to cycle.</p>
-              </div>
-            )}
-          </div>
-        ) : (
-          /* STANDARD BROWSE MODE (Main Application Screen) */
-          <>
-            {/* DYNAMIC FORM TO INPUT / MODIFY DATA */}
-            {showForm && (
-              <form onSubmit={handleFormSubmit} style={{
-                background: '#040404', border: '1px solid var(--neon-green-bright)',
-                padding: '20px', marginBottom: '30px', display: 'flex', flexDirection: 'column', gap: '12px'
-              }}>
+              <form onSubmit={handleFormSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
                 <h3 style={{ margin: '0 0 10px 0', color: '#fff' }}>
                   {editingId ? '⚡ MODIFY CURRENT CACHE_LOG' : '⚡ ENTER NEW CACHE_LOG'}
                 </h3>
@@ -362,77 +332,165 @@ function App() {
                   </select>
                 </div>
 
-                <textarea placeholder="Paste text script or code fragment here..." value={code} onChange={e => setCode(e.target.value)} className="search-input" style={{ marginBottom: 0, height: '70px', resize: 'vertical' }} />
+                <textarea placeholder="Paste text script or code fragment here..." value={code} onChange={e => setCode(e.target.value)} className="search-input" style={{ marginBottom: 0, height: '80px', resize: 'vertical' }} />
                 
                 <textarea 
-                  placeholder="// Optional explanation logs, reminders, or bullet points... (Press Enter for new lines)" 
+                  placeholder="// Optional explanation logs, reminders... (Press Enter for new lines)" 
                   value={notes} 
                   onChange={e => setNotes(e.target.value)} 
                   className="search-input" 
-                  style={{ marginBottom: 0, height: '80px', resize: 'vertical' }} 
+                  style={{ marginBottom: 0, height: '90px', resize: 'vertical' }} 
                 />
                 
                 <button type="submit" style={{
                   background: 'var(--glitch-blocks)', color: 'var(--neon-green-bright)',
                   border: '1px solid var(--neon-green-bright)', padding: '12px',
-                  fontFamily: 'var(--mono-font)', fontWeight: 'bold', cursor: 'pointer'
+                  fontFamily: 'var(--mono-font)', fontWeight: 'bold', cursor: 'pointer', marginTop: '5px'
                 }}>
                   {editingId ? 'UPDATE_CLOUD_LOG' : 'COMMIT_TO_CLOUD'}
                 </button>
               </form>
-            )}
+            </div>
+          </div>
+        )}
 
-            {/* SEARCH BAR */}
-            <input 
-              type="text" 
-              className="search-input"
-              placeholder="SYS_QUERY // Enter key parameters to snoop memory..." 
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-            />
+        {/* ========================================================= */}
+        {/* DIAGNOSTIC EXERCISE MODE POP-UP MODAL                     */}
+        {/* ========================================================= */}
+        {exerciseMode && (
+          <div className="modal-overlay">
+            <div className="modal-content-box" style={{ maxWidth: '650px' }}>
+              {/* Top-Right Absolute Close Command */}
+              <button 
+                onClick={() => setExerciseMode(false)}
+                style={{
+                  position: 'absolute', top: '15px', right: '15px', background: 'transparent',
+                  border: 'none', color: '#ff3333', fontFamily: 'var(--mono-font)', 
+                  cursor: 'pointer', fontSize: '12px'
+                }}
+              >
+                [X_CLOSE]
+              </button>
 
-            {/* RENDERING DYNAMIC DATABASE ENTRIES */}
-            <div className="snippet-grid">
-              {filteredCache.map(item => (
-                <div key={item.id} className="snippet-card">
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                    <span className="card-category">{item.category}</span>
-                    <div style={{ display: 'flex', gap: '10px' }}>
+              <div className="exercise-container">
+                <h2 style={{ color: 'var(--neon-green-bright)', marginBottom: '5px', fontSize: '20px' }}>⚡ ACTIVE DIAGNOSTIC EXERCISE</h2>
+                <p style={{ opacity: 0.7, margin: '0 0 20px 0', fontSize: '13px' }}>
+                  // Partition: <span style={{ color: '#fff' }}>{selectedCategory.toUpperCase()}</span>. Review description logic below.
+                </p>
+
+                {currentFlashcard ? (
+                  <div>
+                    <span className="card-category" style={{ fontSize: '11px' }}>{currentFlashcard.category}</span>
+                    <h3 style={{ margin: '5px 0 15px 0', fontSize: '22px', color: '#fff' }}>{currentFlashcard.title}</h3>
+                    
+                    <div style={{ margin: '15px 0', padding: '15px', background: '#0c0c0c', borderLeft: '3px solid #666' }}>
+                      <p className="card-notes" style={{ whiteSpace: 'pre-line', margin: 0, color: '#aaa', fontStyle: 'italic' }}>
+                        // {currentFlashcard.notes}
+                      </p>
+                    </div>
+
+                    {/* Masked Code Output */}
+                    <div style={{ marginTop: '20px' }}>
+                      {revealCode ? (
+                        <div>
+                          <span style={{ fontSize: '11px', color: 'var(--neon-green-bright)' }}>[TARGET_CODE_UNLOCKED]:</span>
+                          <pre style={{ marginTop: '5px', border: '1px dashed var(--neon-green-bright)', background: '#000' }}>
+                            <code>{currentFlashcard.code}</code>
+                          </pre>
+                        </div>
+                      ) : (
+                        <div style={{ 
+                          background: '#111', height: '55px', display: 'flex', alignItems: 'center', 
+                          justifyContent: 'center', border: '1px dashed #333', color: '#555', fontFamily: 'var(--mono-font)' 
+                        }}>
+                          [ CODE_BLOCK_ENCRYPTED ]
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Pop-up Action Control Rows */}
+                    <div style={{ display: 'flex', gap: '15px', marginTop: '25px', flexWrap: 'wrap' }}>
                       <button 
-                        onClick={() => handleEditClick(item)}
-                        style={{
-                          background: 'transparent', border: 'none', color: 'var(--neon-green-bright)',
-                          fontFamily: 'var(--mono-font)', fontSize: '11px', cursor: 'pointer'
+                        onClick={() => setRevealCode(!revealCode)}
+                        className="search-input"
+                        style={{ 
+                          flex: '1 1 180px', marginBottom: 0, cursor: 'pointer', background: 'transparent',
+                          border: '1px solid #fff', color: '#fff', fontWeight: 'bold', padding: '12px'
                         }}
                       >
-                        [EDIT]
+                        {revealCode ? '🙈 MASK_CODE' : '🔓 REVEAL_TARGET_CODE'}
                       </button>
                       <button 
-                        onClick={() => handleDeleteSnippet(item.id)}
-                        style={{
-                          background: 'transparent', border: 'none', color: '#ff3333',
-                          fontFamily: 'var(--mono-font)', fontSize: '11px', cursor: 'pointer'
+                        onClick={() => handlePickRandomCard()}
+                        className="search-input"
+                        style={{ 
+                          flex: '1 1 180px', marginBottom: 0, cursor: 'pointer', background: 'transparent',
+                          border: '1px solid var(--neon-green-bright)', color: 'var(--neon-green-bright)', fontWeight: 'bold', padding: '12px'
                         }}
                       >
-                        [DELETE]
+                        🎲 NEXT_SYSTEM_TEST
                       </button>
                     </div>
                   </div>
-                  <h3>{item.title}</h3>
-                  <pre><code>{item.code}</code></pre>
-                  
-                  <p className="card-notes" style={{ whiteSpace: 'pre-line' }}>// {item.notes}</p>
-                </div>
-              ))}
-              
-              {filteredCache.length === 0 && (
-                <div className="error-message">
-                  <p>⚠️ CACHE_EMPTY: No logs matching criteria or cloud ledger is unpopulated.</p>
-                </div>
-              )}
+                ) : (
+                  <div className="error-message">
+                    <p>⚠️ INDEX_VOID: There are no elements inside the "{selectedCategory}" partition to cycle.</p>
+                  </div>
+                )}
+              </div>
             </div>
-          </>
+          </div>
         )}
+
+        {/* SEARCH BAR */}
+        <input 
+          type="text" 
+          className="search-input"
+          placeholder="SYS_QUERY // Enter key parameters to snoop memory..." 
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+        />
+
+        {/* RENDERING DYNAMIC DATABASE ENTRIES */}
+        <div className="snippet-grid">
+          {filteredCache.map(item => (
+            <div key={item.id} className="snippet-card">
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <span className="card-category">{item.category}</span>
+                <div style={{ display: 'flex', gap: '10px' }}>
+                  <button 
+                    onClick={() => handleEditClick(item)}
+                    style={{
+                      background: 'transparent', border: 'none', color: 'var(--neon-green-bright)',
+                      fontFamily: 'var(--mono-font)', fontSize: '11px', cursor: 'pointer'
+                    }}
+                  >
+                    [EDIT]
+                  </button>
+                  <button 
+                    onClick={() => handleDeleteSnippet(item.id)}
+                    style={{
+                      background: 'transparent', border: 'none', color: '#ff3333',
+                      fontFamily: 'var(--mono-font)', fontSize: '11px', cursor: 'pointer'
+                    }}
+                  >
+                    [DELETE]
+                  </button>
+                </div>
+              </div>
+              <h3>{item.title}</h3>
+              <pre><code>{item.code}</code></pre>
+              
+              <p className="card-notes" style={{ whiteSpace: 'pre-line' }}>// {item.notes}</p>
+            </div>
+          ))}
+          
+          {filteredCache.length === 0 && (
+            <div className="error-message">
+              <p>⚠️ CACHE_EMPTY: No logs matching criteria or cloud ledger is unpopulated.</p>
+            </div>
+          )}
+        </div>
       </main>
     </div>
   );
