@@ -18,6 +18,14 @@ function App() {
   // Track editing state
   const [editingId, setEditingId] = useState(null);
 
+  // Flashcard Exercise States
+  const [exerciseMode, setExerciseMode] = useState(false);
+  const [currentFlashcard, setCurrentFlashcard] = useState(null);
+  const [revealCode, setRevealCode] = useState(false);
+
+  // Mobile Burger Menu State
+  const [menuOpen, setMenuOpen] = useState(false);
+
   // 1. LISTEN TO FIREBASE CLOUD IN REAL-TIME
   useEffect(() => {
     const unsubscribe = onSnapshot(collection(db, "snippets"), (snapshot) => {
@@ -30,14 +38,44 @@ function App() {
     return () => unsubscribe(); 
   }, []);
 
-  // 2. HANDLE SUBMIT (Handles both creating and editing updates)
+  // 2. COMPUTED DYNAMIC FILTERS
+  const categories = ['All', ...new Set(cacheData.map(item => item.category))];
+  
+  const filteredCache = cacheData.filter(item => {
+    const matchesSearch = 
+      (item.title?.toLowerCase() || '').includes(searchTerm.toLowerCase()) || 
+      (item.notes?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
+      (item.code?.toLowerCase() || '').includes(searchTerm.toLowerCase());
+    const matchesCategory = selectedCategory === 'All' || item.category === selectedCategory;
+    
+    return matchesSearch && matchesCategory;
+  });
+
+  // FLASHCARD LOGIC ENGINE
+  const handlePickRandomCard = (customPool = null) => {
+    const pool = customPool || filteredCache;
+    if (pool.length === 0) {
+      setCurrentFlashcard(null);
+      return;
+    }
+    const randomIndex = Math.floor(Math.random() * pool.length);
+    setCurrentFlashcard(pool[randomIndex]);
+    setRevealCode(false);
+  };
+
+  useEffect(() => {
+    if (exerciseMode) {
+      handlePickRandomCard();
+    }
+  }, [exerciseMode, selectedCategory, cacheData]);
+
+  // 3. HANDLE SUBMIT (Handles both creating and editing updates)
   const handleFormSubmit = async (e) => {
     e.preventDefault();
     if (!title || !code) return alert("SYS_ERR // Title and Code lines cannot be empty.");
 
     try {
       if (editingId) {
-        // We are updating an existing entry
         const docRef = doc(db, "snippets", editingId);
         await updateDoc(docRef, {
           title,
@@ -45,9 +83,8 @@ function App() {
           category,
           notes: notes || 'No extra descriptive context logged.'
         });
-        setEditingId(null); // Clear editing state
+        setEditingId(null);
       } else {
-        // We are creating a brand new entry
         await addDoc(collection(db, "snippets"), {
           title,
           code,
@@ -56,7 +93,6 @@ function App() {
         });
       }
       
-      // Reset inputs after data operation
       setTitle('');
       setCode('');
       setNotes('');
@@ -66,12 +102,11 @@ function App() {
     }
   };
 
-  // 3. WIPE OUT DATA ELEMENT (DELETE)
+  // 4. WIPE OUT DATA ELEMENT (DELETE)
   const handleDeleteSnippet = async (id) => {
     if (window.confirm("SYS_WARN // Execute delete sequence on this data block?")) {
       try {
         await deleteDoc(doc(db, "snippets", id));
-        // If we were editing the card we just deleted, reset the form
         if (editingId === id) {
           setEditingId(null);
           setTitle('');
@@ -85,18 +120,19 @@ function App() {
     }
   };
 
-  // 4. LOAD CARD DATA INTO FORM FOR EDITING
+  // 5. LOAD CARD DATA INTO FORM FOR EDITING
   const handleEditClick = (item) => {
+    setExerciseMode(false); 
     setEditingId(item.id);
     setTitle(item.title);
     setCode(item.code);
     setCategory(item.category);
     setNotes(item.notes === 'No extra descriptive context logged.' ? '' : item.notes);
-    setShowForm(true); // Open the input panel
-    window.scrollTo({ top: 0, behavior: 'smooth' }); // Scroll up to the form
+    setShowForm(true);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  // 5. CANCEL EDITING MODE
+  // 6. CANCEL EDITING MODE
   const handleCancelEdit = () => {
     setEditingId(null);
     setTitle('');
@@ -105,145 +141,298 @@ function App() {
     setShowForm(false);
   };
 
-  // 6. COMPUTED DYNAMIC FILTERS
-  const categories = ['All', ...new Set(cacheData.map(item => item.category))];
-  
-  const filteredCache = cacheData.filter(item => {
-    const matchesSearch = 
-      (item.title?.toLowerCase() || '').includes(searchTerm.toLowerCase()) || 
-      (item.notes?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
-      (item.code?.toLowerCase() || '').includes(searchTerm.toLowerCase());
-    const matchesCategory = selectedCategory === 'All' || item.category === selectedCategory;
-    
-    return matchesSearch && matchesCategory;
-  });
+  // Helper handling mobile navigation option taps
+  const handleCategorySelect = (cat) => {
+    setSelectedCategory(cat);
+    setMenuOpen(false); 
+  };
 
   return (
     <div className="app-container">
-      {/* TERMINAL NAVIGATION SIDEBAR */}
-      <aside className="sidebar">
-        <h2>📁 mac22_cache</h2>
-        
-        {/* Toggle Form View Panel */}
-        <button 
-          onClick={editingId ? handleCancelEdit : () => setShowForm(!showForm)} 
-          style={{
-            width: '100%', padding: '10px', background: 'transparent',
-            border: '1px solid var(--neon-green-bright)', color: 'var(--neon-green-bright)',
-            fontFamily: 'var(--mono-font)', cursor: 'pointer', marginBottom: '20px',
-            boxShadow: '0 0 5px rgba(0,255,65,0.3)'
-          }}
-        >
-          {editingId ? '❌ CANCEL_EDIT' : showForm ? '❌ CLOSE_PANEL' : '➕ INJECT_DATA'}
-        </button>
+      
+      {/* INJECT DYNAMIC MEDIA CSS STYLES DIRECTLY */}
+      <style>{`
+        /* Desktop Base Rules */
+        .sidebar {
+          width: 260px;
+          padding: 20px;
+          background: #000;
+          border-right: 1px solid var(--neon-green-bright);
+        }
+        .burger-toggle {
+          display: none;
+        }
+        .nav-content {
+          display: block;
+        }
 
-        <ul className="category-list">
-          {categories.map(cat => (
-            <li 
-              key={cat} 
-              className={`category-item ${selectedCategory === cat ? 'active' : ''}`}
-              onClick={() => setSelectedCategory(cat)}
-            >
-              {cat === 'All' ? '📡 SYSTEM_ALL' : `🏷️ ${cat.toUpperCase()}`}
-            </li>
-          ))}
-        </ul>
+        /* Mobile Viewport Rules */
+        @media (max-width: 768px) {
+          .app-container {
+            flex-direction: column;
+          }
+          .sidebar {
+            width: 100%;
+            border-right: none;
+            border-bottom: 1px solid var(--neon-green-bright);
+            box-sizing: border-box;
+            padding: 15px;
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+          }
+          .sidebar-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+          }
+          .sidebar-header h2 {
+            margin: 0;
+            font-size: 18px;
+          }
+          .burger-toggle {
+            display: block;
+            background: transparent;
+            border: 1px dashed var(--neon-green-bright);
+            color: var(--neon-green-bright);
+            padding: 6px 12px;
+            font-family: var(--mono-font);
+            cursor: pointer;
+            font-size: 12px;
+          }
+          .nav-content {
+            display: ${menuOpen ? 'block' : 'none'};
+            margin-top: 15px;
+            border-top: 1px dashed #222;
+            padding-top: 15px;
+          }
+          .main-content {
+            padding: 15px;
+          }
+        }
+      `}</style>
+
+      {/* TERMINAL NAVIGATION SIDEBAR / RESPONSIVE TOP BAR */}
+      <aside className="sidebar">
+        <div className="sidebar-header">
+          <h2>📁 mac22_cache</h2>
+          {/* Cyberpunk Burger Toggle Switch */}
+          <button className="burger-toggle" onClick={() => setMenuOpen(!menuOpen)}>
+            {menuOpen ? '[ CLOSE_NAV ]' : '[ MENU ]'}
+          </button>
+        </div>
+        
+        {/* Responsive Content Drawer Container */}
+        <div className="nav-content">
+          
+          {/* 1. EXERCISE FLASHCARD MODE TOGGLE (DISPLAYED FIRST) */}
+          <button 
+            onClick={() => { setExerciseMode(!exerciseMode); setShowForm(false); setMenuOpen(false); }} 
+            style={{
+              width: '100%', padding: '10px', marginTop: '15px', marginBottom: '10px',
+              background: exerciseMode ? 'var(--neon-green-bright)' : 'transparent', 
+              color: exerciseMode ? '#000' : 'var(--neon-green-bright)',
+              border: '1px solid var(--neon-green-bright)', fontFamily: 'var(--mono-font)', 
+              fontWeight: 'bold', cursor: 'pointer', display: 'flex', justifyContent: 'center', gap: '8px'
+            }}
+          >
+            {exerciseMode ? '🖥️ BROWSE_CACHE_LOGS' : '📡 EXERCISE_MODE'}
+          </button>
+
+          {/* 2. INJECT DATA CONTROL ACTION */}
+          <button 
+            onClick={editingId ? handleCancelEdit : () => { setShowForm(!showForm); setExerciseMode(false); setMenuOpen(false); }} 
+            style={{
+              width: '100%', padding: '10px', background: 'transparent',
+              border: '1px solid var(--neon-green-bright)', color: 'var(--neon-green-bright)',
+              fontFamily: 'var(--mono-font)', cursor: 'pointer', marginBottom: '20px',
+              boxShadow: '0 0 5px rgba(0,255,65,0.3)'
+            }}
+          >
+            {editingId ? '❌ CANCEL_EDIT' : showForm ? '❌ CLOSE_PANEL' : '➕ INJECT_DATA'}
+          </button>
+
+          {/* 3. SYSTEM CATEGORIES FILTERS */}
+          <ul className="category-list" style={{ paddingLeft: 0, listStyleType: 'none' }}>
+            {categories.map(cat => (
+              <li 
+                key={cat} 
+                className={`category-item ${selectedCategory === cat ? 'active' : ''}`}
+                onClick={() => handleCategorySelect(cat)}
+                style={{ cursor: 'pointer', padding: '8px 0' }}
+              >
+                {cat === 'All' ? '📡 SYSTEM_ALL' : `🏷️ ${cat.toUpperCase()}`}
+              </li>
+            ))}
+          </ul>
+        </div>
       </aside>
 
       {/* CORE DISPLAY WINDOW */}
-      <main className="main-content">
+      <main className="main-content" style={{ flex: 1, padding: '20px' }}>
         
-        {/* DYNAMIC FORM TO INPUT / MODIFY DATA */}
-        {showForm && (
-          <form onSubmit={handleFormSubmit} style={{
-            background: '#040404', border: '1px solid var(--neon-green-bright)',
-            padding: '20px', marginBottom: '30px', display: 'flex', flexDirection: 'column', gap: '12px'
-          }}>
-            <h3 style={{ margin: '0 0 10px 0', color: '#fff' }}>
-              {editingId ? '⚡ MODIFY CURRENT CACHE_LOG' : '⚡ ENTER NEW CACHE_LOG'}
-            </h3>
-            
-            <div style={{ display: 'flex', gap: '10px' }}>
-              <input type="text" placeholder="Title (e.g. Git Branching)" value={title} onChange={e => setTitle(e.target.value)} className="search-input" style={{ marginBottom: 0, flex: 2 }} />
-              <select value={category} onChange={e => setCategory(e.target.value)} className="search-input" style={{ marginBottom: 0, flex: 1, paddingRight: '10px', background: '#000' }}>
-                <option value="Git">Git</option>
-                <option value="JavaScript">JavaScript</option>
-                <option value="React">React</option>
-                <option value="CSS">CSS</option>
-              </select>
-            </div>
+        {/* EXERCISE FLASHCARD TERMINAL MODE DISPLAY */}
+        {exerciseMode ? (
+          <div className="exercise-container" style={{ padding: '10px' }}>
+            <h2 style={{ color: 'var(--neon-green-bright)', marginBottom: '5px' }}>⚡ ACTIVE DIAGNOSTIC EXERCISE</h2>
+            <p style={{ opacity: 0.7, margin: '0 0 20px 0', fontSize: '14px' }}>
+              // Target Directory: <span style={{ color: '#fff' }}>{selectedCategory.toUpperCase()}</span>. Review descriptions and recall the matched script syntax.
+            </p>
 
-            <textarea placeholder="Paste text script or code fragment here..." value={code} onChange={e => setCode(e.target.value)} className="search-input" style={{ marginBottom: 0, height: '70px', resize: 'vertical' }} />
-            
-            {/* MULTI-LINE EXPLANATION LOG AREA */}
-            <textarea 
-              placeholder="// Optional explanation logs, reminders, or bullet points... (Press Enter for new lines)" 
-              value={notes} 
-              onChange={e => setNotes(e.target.value)} 
-              className="search-input" 
-              style={{ marginBottom: 0, height: '80px', resize: 'vertical' }} 
-            />
-            
-            <button type="submit" style={{
-              background: 'var(--glitch-blocks)', color: 'var(--neon-green-bright)',
-              border: '1px solid var(--neon-green-bright)', padding: '12px',
-              fontFamily: 'var(--mono-font)', fontWeight: 'bold', cursor: 'pointer'
-            }}>
-              {editingId ? 'UPDATE_CLOUD_LOG' : 'COMMIT_TO_CLOUD'}
-            </button>
-          </form>
-        )}
+            {currentFlashcard ? (
+              <div className="snippet-card" style={{ maxWidth: '650px', border: '2px solid var(--neon-green-bright)', padding: '25px', background: '#050505' }}>
+                <span className="card-category" style={{ fontSize: '11px' }}>{currentFlashcard.category}</span>
+                <h3 style={{ margin: '10px 0', fontSize: '22px', color: '#fff' }}>{currentFlashcard.title}</h3>
+                
+                <div style={{ margin: '15px 0', padding: '15px', background: '#0c0c0c', borderLeft: '3px solid #666' }}>
+                  <p className="card-notes" style={{ whiteSpace: 'pre-line', margin: 0, color: '#aaa', fontStyle: 'italic' }}>
+                    // {currentFlashcard.notes}
+                  </p>
+                </div>
 
-        {/* SEARCH BAR */}
-        <input 
-          type="text" 
-          className="search-input"
-          placeholder="SYS_QUERY // Enter key parameters to snoop memory..." 
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-        />
+                {/* THE MASKED CODE SEGMENT */}
+                <div style={{ marginTop: '20px' }}>
+                  {revealCode ? (
+                    <div>
+                      <span style={{ fontSize: '11px', color: 'var(--neon-green-bright)' }}>[TARGET_CODE_UNLOCKED]:</span>
+                      <pre style={{ marginTop: '5px', border: '1px dashed var(--neon-green-bright)' }}>
+                        <code>{currentFlashcard.code}</code>
+                      </pre>
+                    </div>
+                  ) : (
+                    <div style={{ 
+                      background: '#111', height: '55px', display: 'flex', alignItems: 'center', 
+                      justifyContent: 'center', border: '1px dashed #333', color: '#555', fontFamily: 'var(--mono-font)' 
+                    }}>
+                      [ CODE_BLOCK_ENCRYPTED ]
+                    </div>
+                  )}
+                </div>
 
-        {/* RENDERING DYNAMIC DATABASE ENTRIES */}
-        <div className="snippet-grid">
-          {filteredCache.map(item => (
-            <div key={item.id} className="snippet-card">
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                <span className="card-category">{item.category}</span>
-                <div style={{ display: 'flex', gap: '10px' }}>
+                {/* CONTROL BUTTONS */}
+                <div style={{ display: 'flex', gap: '15px', marginTop: '25px' }}>
                   <button 
-                    onClick={() => handleEditClick(item)}
-                    style={{
-                      background: 'transparent', border: 'none', color: 'var(--neon-green-bright)',
-                      fontFamily: 'var(--mono-font)', fontSize: '11px', cursor: 'pointer'
+                    onClick={() => setRevealCode(!revealCode)}
+                    className="search-input"
+                    style={{ 
+                      flex: 1, marginBottom: 0, cursor: 'pointer', background: 'transparent',
+                      border: '1px solid #fff', color: '#fff', fontWeight: 'bold' 
                     }}
                   >
-                    [EDIT]
+                    {revealCode ? '🙈 MASK_CODE' : '🔓 REVEAL_TARGET_CODE'}
                   </button>
                   <button 
-                    onClick={() => handleDeleteSnippet(item.id)}
-                    style={{
-                      background: 'transparent', border: 'none', color: '#ff3333',
-                      fontFamily: 'var(--mono-font)', fontSize: '11px', cursor: 'pointer'
+                    onClick={() => handlePickRandomCard()}
+                    className="search-input"
+                    style={{ 
+                      flex: 1, marginBottom: 0, cursor: 'pointer', background: 'transparent',
+                      border: '1px solid var(--neon-green-bright)', color: 'var(--neon-green-bright)', fontWeight: 'bold' 
                     }}
                   >
-                    [DELETE]
+                    🎲 NEXT_SYSTEM_TEST
                   </button>
                 </div>
               </div>
-              <h3>{item.title}</h3>
-              <pre><code>{item.code}</code></pre>
+            ) : (
+              <div className="error-message">
+                <p>⚠️ INDEX_VOID: There are no saved elements loaded inside the "{selectedCategory}" partition to cycle.</p>
+              </div>
+            )}
+          </div>
+        ) : (
+          /* STANDARD BROWSE MODE (Main Application Screen) */
+          <>
+            {/* DYNAMIC FORM TO INPUT / MODIFY DATA */}
+            {showForm && (
+              <form onSubmit={handleFormSubmit} style={{
+                background: '#040404', border: '1px solid var(--neon-green-bright)',
+                padding: '20px', marginBottom: '30px', display: 'flex', flexDirection: 'column', gap: '12px'
+              }}>
+                <h3 style={{ margin: '0 0 10px 0', color: '#fff' }}>
+                  {editingId ? '⚡ MODIFY CURRENT CACHE_LOG' : '⚡ ENTER NEW CACHE_LOG'}
+                </h3>
+                
+                <div style={{ display: 'flex', gap: '10px' }}>
+                  <input type="text" placeholder="Title (e.g. Git Branching)" value={title} onChange={e => setTitle(e.target.value)} className="search-input" style={{ marginBottom: 0, flex: 2 }} />
+                  <select value={category} onChange={e => setCategory(e.target.value)} className="search-input" style={{ marginBottom: 0, flex: 1, paddingRight: '10px', background: '#000' }}>
+                    <option value="Git">Git</option>
+                    <option value="JavaScript">JavaScript</option>
+                    <option value="React">React</option>
+                    <option value="CSS">CSS</option>
+                  </select>
+                </div>
+
+                <textarea placeholder="Paste text script or code fragment here..." value={code} onChange={e => setCode(e.target.value)} className="search-input" style={{ marginBottom: 0, height: '70px', resize: 'vertical' }} />
+                
+                <textarea 
+                  placeholder="// Optional explanation logs, reminders, or bullet points... (Press Enter for new lines)" 
+                  value={notes} 
+                  onChange={e => setNotes(e.target.value)} 
+                  className="search-input" 
+                  style={{ marginBottom: 0, height: '80px', resize: 'vertical' }} 
+                />
+                
+                <button type="submit" style={{
+                  background: 'var(--glitch-blocks)', color: 'var(--neon-green-bright)',
+                  border: '1px solid var(--neon-green-bright)', padding: '12px',
+                  fontFamily: 'var(--mono-font)', fontWeight: 'bold', cursor: 'pointer'
+                }}>
+                  {editingId ? 'UPDATE_CLOUD_LOG' : 'COMMIT_TO_CLOUD'}
+                </button>
+              </form>
+            )}
+
+            {/* SEARCH BAR */}
+            <input 
+              type="text" 
+              className="search-input"
+              placeholder="SYS_QUERY // Enter key parameters to snoop memory..." 
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
+
+            {/* RENDERING DYNAMIC DATABASE ENTRIES */}
+            <div className="snippet-grid">
+              {filteredCache.map(item => (
+                <div key={item.id} className="snippet-card">
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <span className="card-category">{item.category}</span>
+                    <div style={{ display: 'flex', gap: '10px' }}>
+                      <button 
+                        onClick={() => handleEditClick(item)}
+                        style={{
+                          background: 'transparent', border: 'none', color: 'var(--neon-green-bright)',
+                          fontFamily: 'var(--mono-font)', fontSize: '11px', cursor: 'pointer'
+                        }}
+                      >
+                        [EDIT]
+                      </button>
+                      <button 
+                        onClick={() => handleDeleteSnippet(item.id)}
+                        style={{
+                          background: 'transparent', border: 'none', color: '#ff3333',
+                          fontFamily: 'var(--mono-font)', fontSize: '11px', cursor: 'pointer'
+                        }}
+                      >
+                        [DELETE]
+                      </button>
+                    </div>
+                  </div>
+                  <h3>{item.title}</h3>
+                  <pre><code>{item.code}</code></pre>
+                  
+                  <p className="card-notes" style={{ whiteSpace: 'pre-line' }}>// {item.notes}</p>
+                </div>
+              ))}
               
-              <p className="card-notes" style={{ whiteSpace: 'pre-line' }}>// {item.notes}</p>
+              {filteredCache.length === 0 && (
+                <div className="error-message">
+                  <p>⚠️ CACHE_EMPTY: No logs matching criteria or cloud ledger is unpopulated.</p>
+                </div>
+              )}
             </div>
-          ))}
-          
-          {/* FALLBACK INFO PANEL */}
-          {filteredCache.length === 0 && (
-            <div className="error-message">
-              <p>⚠️ CACHE_EMPTY: No logs matching criteria or cloud ledger is unpopulated.</p>
-            </div>
-          )}
-        </div>
+          </>
+        )}
       </main>
     </div>
   );
